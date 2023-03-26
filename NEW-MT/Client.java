@@ -17,6 +17,10 @@ public class Client extends Thread {
         this.portName = port;
     }
 
+
+    BufferedReader reader;
+    PrintWriter writer;
+    
     @Override
     public void run() {
         // if(args.length < 2) {
@@ -26,10 +30,12 @@ public class Client extends Thread {
         // String hostname = args[0];
         // int port = Integer.parseInt(args[1]);
 
+
+
         try(Socket socket = new Socket(this.hostname, this.portName)) {
 
             OutputStream output = socket.getOutputStream();
-            PrintWriter writer = new PrintWriter(output, true);
+            writer = new PrintWriter(output, true);
 
             String text;
 
@@ -42,18 +48,26 @@ public class Client extends Thread {
 
             //System.out.println("in run: " + text);
 
-                
             writer.println(text);
 
             InputStream input = socket.getInputStream();
-            BufferedReader reader = new BufferedReader(new InputStreamReader(input));
+            reader = new BufferedReader(new InputStreamReader(input));
             String stuff = reader.readLine();
             System.out.println(stuff);
+
 
         } catch (UnknownHostException e) {
             System.out.println("Server not found: " + e.getMessage());
         } catch (IOException e) {
             System.out.println("I/O error: " + e.getMessage());
+        } finally {
+            try {
+                reader.close();
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+            writer.close();
         }
 
     }
