@@ -40,8 +40,7 @@ public class ServerThread extends Thread {
             InputStream input = socket.getInputStream();
             reader = new BufferedReader(new InputStreamReader(input));
 
-            OutputStream output = socket.getOutputStream();
-            writer = new PrintWriter(output, true);
+            writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
 
 
             String text = reader.readLine();
@@ -58,7 +57,7 @@ public class ServerThread extends Thread {
                 switch(text) {
                     case "1":
                         turnAroundEnd = endTime(turnaroundStart);
-                        writer.print("Date and Time: " + new Date().toString() + " | Turnaround Time: " + turnAroundEnd + "ms\n");
+                        writer.write("Date and Time: " + new Date().toString() + " | Turnaround Time: " + turnAroundEnd + "ms\n");
                         writer.flush();
                         requestCount++;
                         turnAroundSum += turnAroundEnd;
@@ -66,7 +65,7 @@ public class ServerThread extends Thread {
                     case "2":
                         long uptime = ManagementFactory.getRuntimeMXBean().getUptime();
                         turnAroundEnd = endTime(turnaroundStart);
-                        writer.print("Server uptime: " + uptime + " milliseconds | Turnaround Time: " + turnAroundEnd + "ms\n");
+                        writer.write("Server uptime: " + uptime + " milliseconds | Turnaround Time: " + turnAroundEnd + "ms\n");
                         writer.flush();
 
                         break;
@@ -76,31 +75,25 @@ public class ServerThread extends Thread {
                         long usedMemory = heapMemoryUsage.getUsed();
                         long maxMemory = heapMemoryUsage.getMax();                        
                         turnAroundEnd = endTime(turnaroundStart);
-                        writer.print("Memory Use: " + usedMemory + " bytes used out of " + maxMemory + " bytes | Turnaround Time: " + turnAroundEnd + "ms\n");
+                        writer.write("Memory Use: " + usedMemory + " bytes used out of " + maxMemory + " bytes | Turnaround Time: " + turnAroundEnd + "ms\n");
                         writer.flush();
 
                         break;
                     case "4":
+                        Runtime runtime = Runtime.getRuntime();
+                        String[] commands = {"netstat", ""};
+                        Process netstatProc = runtime.exec(commands);
+                        BufferedReader netstatReader = new BufferedReader(new InputStreamReader(netstatProc.getInputStream()));
+                        //BufferedReader netstatErrorReader = new BufferedReader(new InputStreamReader(netstatProc.getErrorStream()));
+
+                        String s = null;
+                        while ((s = netstatReader.readLine()) != null) {
+                            writer.print(s);
+                        }
+
                         turnAroundEnd = endTime(turnaroundStart);
-                        Process netstatProc = Runtime.getRuntime().exec("netstat -a");
-                        BufferedReader br = new BufferedReader(new InputStreamReader(netstatProc.getInputStream()));
 
-                        String str;
-                        str = br.readLine();
-
-                        // do {
-                        //     str = br.readLine();
-                        //     //writer.println(str + " | Turnaround Time: " + turnAroundEnd + "ms\n");
-                        // } while(str != null);
-
-                        
-
-                        // while(str != null){
-                            
-                        //     writer.println(str + " | Turnaround Time: " + turnAroundEnd + "ms\n");
-                        //     str = br.readLine();
-                        // }
-
+                        writer.close();
                         
                         //writer.flush();
 
@@ -113,11 +106,13 @@ public class ServerThread extends Thread {
                             Process process = pb.start();
                             Scanner scanner = new Scanner(process.getInputStream());
                             while (scanner.hasNextLine()) {
-                                writer.println(scanner.nextLine() + " | Turnaround Time: " + turnAroundEnd + "ms\n");
+                                writer.write(scanner.nextLine() + " | Turnaround Time: " + turnAroundEnd + "ms\n");
+                                writer.flush();
                             }
                             scanner.close();
                         } catch (IOException e) {
-                            writer.println("Error executing who command: " + e.getMessage());
+                            writer.write("Error executing who command: " + e.getMessage());
+                            writer.flush();
                         }
                         writer.flush();
 
@@ -126,7 +121,7 @@ public class ServerThread extends Thread {
                         turnAroundEnd = endTime(turnaroundStart);
                         Process runningproc = Runtime.getRuntime().exec("ps -aux");
                         BufferedReader runningprocBR = new BufferedReader(new InputStreamReader(runningproc.getInputStream()));
-                        writer.print("Running Processes: " + runningprocBR.readLine() + " | Turnaround Time: " + turnAroundEnd + "ms\n");
+                        writer.write("Running Processes: " + runningprocBR.readLine() + " | Turnaround Time: " + turnAroundEnd + "ms\n");
                         writer.flush();
 
                         break;
@@ -147,11 +142,9 @@ public class ServerThread extends Thread {
             try {
                 reader.close();
             } catch (IOException e) {
-
                 e.printStackTrace();
+                writer.close();
             }
-            
-            writer.close();
         }
         
     } //end run
